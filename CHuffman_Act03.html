@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Huffman</title>
+    <link rel="stylesheet" href="bulma.min.css">
+    <script src="jquery.min.js"></script>
+    <script src="https://kit.fontawesome.com/6b259f39e8.js" crossorigin="anonymous"></script>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+        }
+        html {
+            overflow-y: auto;
+        }
+        .flex-grow-unset {
+            flex-grow: unset;
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="hero-body">
+            <p class="title">
+                Algoritmo de compactación de datos
+            </p>
+            <p class="subtitle" style="margin-bottom: 5px">
+                <a href="https://github.com/hectorrdz98" target="_blank">Héctor Daniel Rodríguez Feregrino</a>
+            </p>
+            <p class="subtitle">
+                Mediante códigos <span class="tag is-info is-medium">Huffman</span>
+            </p>
+            <p class="subtitle">
+                Ingrese la palabra que desee convertir en el siguiente <b>campo de texto</b><br>
+                o seleccione un archivo .txt con la palabra a convertir.
+            </p>
+            <div class="field is-horizontal">
+                <div class="field-label is-normal flex-grow-unset">
+                    <label class="label">Palabra</label>
+                </div>
+                <div class="field-body is-grouped flex-grow-unset">
+                    <div class="field has-addons">
+                        <p class="control has-icons-left">
+                            <input id="word-input" class="input" type="text" value="esquizofrenia"
+                                style="width: 300px;" placeholder="Palabra a convertir...">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-pen-alt"></i>
+                            </span>
+                        </p>
+                        <div class="control">
+                            <a id="compact" class="button is-info">
+                                Compactar
+                            </a>
+                        </div>
+                    </div>
+                    <div class="file">
+                        <label class="file-label">
+                            <input id="file" class="file-input" type="file" name="resume">
+                            <span class="file-cta">
+                                <span class="file-icon">
+                                    <i class="fas fa-upload"></i>
+                                </span>
+                                <span class="file-label">
+                                    Elegir archivo...
+                                </span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="hero">
+        <div class="hero-body">
+            <table class="table is-bordered is-striped is-narrow is-hoverable">
+                <thead>
+                    <tr>
+                        <th>Caracter</th>
+                        <th># de repeticiones</th>
+                        <th>Valor en binario con Huffman</th>
+                        <th>Peso original</th>
+                        <th>Peso binario</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-word">
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="3">Total</th>
+                        <th id="total-value">0</th>
+                        <th id="total-binary-value">0</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </section>
+</body>
+<script>
+    var currentWord = ''
+    var originalWordDict = {}
+
+    class Node {
+        constructor (value, key=null, left=null, right=null) {
+            this.value = value
+            this.key = key
+            this.left = left
+            this.right = right
+        }
+    }
+
+    $("#compact").click(function () {
+        currentWord = $("#word-input").val()
+        originalWordDict = {}
+        $("#tbody-word").empty()
+        if (currentWord != '') {
+            preLoadWordDict()
+            initHuffman()
+            fillTable()
+        }
+    })
+
+    $("#file").change(function () {
+        let file = document.getElementById('file').files[0]
+        let reader = new FileReader()
+  
+        reader.onload = (e) => {
+            currentWord = e.target.result
+            originalWordDict = {}
+            $("#tbody-word").empty()
+            if (currentWord != '') {
+                preLoadWordDict()
+                initHuffman()
+                fillTable()
+            }
+        }
+    
+        reader.onerror = (e) => alert('Ocurrió un error al abrir el archivo'); 
+        reader.readAsText(file); 
+    })
+
+    function preLoadWordDict() {
+        for (const c of currentWord) {
+            if (c in originalWordDict) {
+                originalWordDict[c]['cont']++
+            } else {
+                originalWordDict[c] = {
+                    'cont': 1,
+                    'binary': ''
+                }
+            }
+        }
+    }
+
+    function pushToBottom(node, array) {
+        let i = 0;
+        while (i < array.length && node.value >= array[i].value) { i++ }
+        array.splice(i, 0, node)
+    }
+
+    function initHuffman() {
+        let currentStack = []
+        for (const [key, value] of Object.entries(originalWordDict)) {
+            let node = new Node(value['cont'], key)
+            pushToBottom(node, currentStack)
+        }
+        processHuffman(currentStack)
+        if (currentStack.length == 1) {
+            getBinaries(currentStack[0], '')
+        }
+    }
+
+    function processHuffman(stack) {
+        while (stack.length >= 2) {
+            let node0 = stack[0]
+            let node1 = stack[1]
+            stack.splice(0, 2)
+            let newNode = new Node((node0.value + node1.value), null, node0, node1)
+            pushToBottom(newNode, stack)
+        }
+    }
+
+    function getBinaries(node, currentBinary) {
+        if (node.left && node.right) {
+            getBinaries(node.left, (currentBinary + '0'))
+            getBinaries(node.right, (currentBinary + '1'))
+        } else {
+            originalWordDict[node.key]['binary'] = currentBinary
+        }
+    }
+    function fillTable() {
+        let total = 0
+        let binaryTotal = 0
+        for (const [key, value] of Object.entries(originalWordDict)) {
+            $("#tbody-word").append(`
+                <tr>
+                    <td>` + key + `</td>
+                    <td>` + value['cont'] + `</td>
+                    <td>` + value['binary'] + `</td>
+                    <td>` + (key.length * value['cont'] * 8) + `</td>
+                    <td>` + (value['binary'].length * value['cont']) + `</td>
+                </tr>
+            `)
+            total += (key.length * value['cont'] * 8)
+            binaryTotal += (value['binary'].length * value['cont'])
+        }
+        $("#total-value").text(total)
+        $("#total-binary-value").text(binaryTotal)
+    }
+</script>
+</html>
